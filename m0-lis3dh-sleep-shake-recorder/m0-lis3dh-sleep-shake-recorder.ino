@@ -103,7 +103,7 @@ void init_ACC(void)
 /*-----------------------------------------------------------------------------*/
 void setup(void) {
 #ifndef ESP8266
-  while (!Serial);     // will pause Zero, Leonardo, etc until serial console opens
+  //while (!Serial);     // will pause Zero, Leonardo, etc until serial console opens
 #endif
 
   // button pins
