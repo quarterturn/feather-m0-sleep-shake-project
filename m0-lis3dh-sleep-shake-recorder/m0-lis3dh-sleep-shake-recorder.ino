@@ -177,7 +177,7 @@ void setup(void) {
   digitalWrite(BLUE_LED, LOW);
   digitalWrite(RED_LED, LOW);
   
-
+  init_ACC();
   readRegister(0x21); //read register to reset high-pass filter 
   readRegister(0x26); //read register to set reference acceleration
   readRegister(LIS3DH_REG_INT1SRC); //Read INT1_SRC to de-latch;
@@ -263,6 +263,8 @@ void loop() {
     if (digitalRead(BUTTON_5) == LOW)
     {
       delay(20);
+      // turn on blue LED
+      digitalWrite(BLUE_LED, HIGH);
       // start button timer
       volatile unsigned long buttonTime = millis();
       // spin around here until button is released
@@ -270,14 +272,13 @@ void loop() {
       if ((millis() - buttonTime) > LONG_CLICK_MS)
       {
         // turn off red LED
-        digitalWrite(RED_LED, LOW); 
+        digitalWrite(RED_LED, LOW);
         // blink the blue LED to indicate going to off mode
         blinkBlue(5, 50);
         // unset flag
         interruptFlag = 0;
         // un-latch LIS3DH
         init_ACC();
-        attachInterrupt(digitalPinToInterrupt(INT_PIN), LISinterrupt, HIGH);
         readRegister(0x21); //read register to reset high-pass filter 
         readRegister(0x26); //read register to set reference acceleration
         readRegister(LIS3DH_REG_INT1SRC); //Read INT1_SRC to de-latch;
@@ -287,66 +288,77 @@ void loop() {
         // Serial.println("I am awake!");
         detachInterrupt(6);
       }
-    }
-
-    DateTime now = rtc.now();
-    
-    filename[0] = '0' + now.day() / 10;
-    filename[1] = '0' + now.day() % 10;
-    filename[2] = '0' + now.hour() / 10;
-    filename[3] = '0' + now.hour() % 10;
-    filename[4] = '0' + now.minute() / 10;
-    filename[5] = '0' + now.minute() % 10;
-    filename[6] = '0' + now.second() / 10;
-    filename[7] = '0' + now.second() % 10;
-    filename[8] = '.';
-    filename[9] = 'c';
-    filename[10] = 's';
-    filename[11] = 'v';
-    filename[12] = '\0';
-    
-    // open the file
-    logfile = SD.open(filename, FILE_WRITE);
-    if ( ! logfile )
-    {
-      // Serial.print("Could not create ");
-      // Serial.println(filename);
-      while(1)
+      else
       {
-        blinkRed(1, 100);
-        blinkBlue(1, 100);
+        digitalWrite(BLUE_LED, LOW);
       }
     }
-//    Serial.print("Writing to: ");
-//    Serial.println(filename);
-//    
-//    Serial.print("  \tinterrupt: ");
-//    Serial.print(reading++); Serial.print(",  ");
-//    Serial.print(readRegister(0x21)); Serial.print(",  "); //read register to reset high-pass filter 
-//    Serial.print(readRegister(0x26)); Serial.print(",  "); //read register to set reference acceleration
-//    Serial.print(readRegister(LIS3DH_REG_INT1SRC)); Serial.print(",  "); //Read INT1_SRC to de-latch;
-//    Serial.println();
 
-    readRegister(0x21); //read register to reset high-pass filter 
-    readRegister(0x26); //read register to set reference acceleration
-    readRegister(LIS3DH_REG_INT1SRC); //Read INT1_SRC to de-latch;
-    
-    // get some data
-    for (int n = 0; n < SAMPLES_TO_CAPTURE; n++)
+    // check the interrupt flag again
+    // this way if we turned back on via buttn 6
+    // we drop back into waiting for shake
+    // so the behavior is the same as during init
+    if (interruptFlag == 1)
     {
-      lis.read();
-      chx = lis.x;
-      chy = lis.y;
-      chz = lis.z;
-      // Serial.print(chx); Serial.print(','); Serial.print(chy); Serial.print(','); Serial.println(chz);
-      logfile.print(chx); logfile.print(','); logfile.print(chy); logfile.print(','); logfile.println(chz);
+      DateTime now = rtc.now();
+      
+      filename[0] = '0' + now.day() / 10;
+      filename[1] = '0' + now.day() % 10;
+      filename[2] = '0' + now.hour() / 10;
+      filename[3] = '0' + now.hour() % 10;
+      filename[4] = '0' + now.minute() / 10;
+      filename[5] = '0' + now.minute() % 10;
+      filename[6] = '0' + now.second() / 10;
+      filename[7] = '0' + now.second() % 10;
+      filename[8] = '.';
+      filename[9] = 'c';
+      filename[10] = 's';
+      filename[11] = 'v';
+      filename[12] = '\0';
+      
+      // open the file
+      logfile = SD.open(filename, FILE_WRITE);
+      if ( ! logfile )
+      {
+        // Serial.print("Could not create ");
+        // Serial.println(filename);
+        while(1)
+        {
+          blinkRed(1, 100);
+          blinkBlue(1, 100);
+        }
+      }
+  //    Serial.print("Writing to: ");
+  //    Serial.println(filename);
+  //    
+  //    Serial.print("  \tinterrupt: ");
+  //    Serial.print(reading++); Serial.print(",  ");
+  //    Serial.print(readRegister(0x21)); Serial.print(",  "); //read register to reset high-pass filter 
+  //    Serial.print(readRegister(0x26)); Serial.print(",  "); //read register to set reference acceleration
+  //    Serial.print(readRegister(LIS3DH_REG_INT1SRC)); Serial.print(",  "); //Read INT1_SRC to de-latch;
+  //    Serial.println();
+  
+      readRegister(0x21); //read register to reset high-pass filter 
+      readRegister(0x26); //read register to set reference acceleration
+      readRegister(LIS3DH_REG_INT1SRC); //Read INT1_SRC to de-latch;
+      
+      // get some data
+      for (int n = 0; n < SAMPLES_TO_CAPTURE; n++)
+      {
+        lis.read();
+        chx = lis.x;
+        chy = lis.y;
+        chz = lis.z;
+        // Serial.print(chx); Serial.print(','); Serial.print(chy); Serial.print(','); Serial.println(chz);
+        logfile.print(chx); logfile.print(','); logfile.print(chy); logfile.print(','); logfile.println(chz);
+      }
+      logfile.flush();
+      logfile.close();
+  
+      digitalWrite(RED_LED, LOW); 
+      
+      interruptFlag = 0;
     }
-    logfile.flush();
-    logfile.close();
-
-    digitalWrite(RED_LED, LOW); 
-    
-    interruptFlag = 0;
     init_ACC();
     attachInterrupt(digitalPinToInterrupt(INT_PIN), LISinterrupt, HIGH);
     readRegister(0x21); //read register to reset high-pass filter 
@@ -354,6 +366,4 @@ void loop() {
     readRegister(LIS3DH_REG_INT1SRC); //Read INT1_SRC to de-latch;
     LowPower.idle(IDLE_2);
   }
- 
-  delay(50); 
 }
