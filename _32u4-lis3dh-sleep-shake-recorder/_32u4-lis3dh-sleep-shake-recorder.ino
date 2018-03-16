@@ -15,8 +15,8 @@
 
 // buttons and LEDs
 #define BLUE_LED 10
-#define BUTTON_6 6
 #define BUTTON_5 5
+#define BUTTON_0 0
 #define RED_LED 13
 
 // button long click time
@@ -27,7 +27,7 @@
 #define SAMPLES_TO_CAPTURE 6000
 
 // pin to connect to INT pin on LIS3DH
-#define INT_PIN A0
+#define INT_PIN 1
 
 // RTC
 #include "RTClib.h"
@@ -108,7 +108,7 @@ void setup(void) {
 
   // button pins
   pinMode(BUTTON_5, INPUT_PULLUP);
-  pinMode(BUTTON_6, INPUT_PULLUP);
+  pinMode(BUTTON_0, INPUT_PULLUP);
 
   // LED pins
   pinMode(BLUE_LED, OUTPUT);
@@ -181,11 +181,11 @@ void setup(void) {
   readRegister(0x21); //read register to reset high-pass filter 
   readRegister(0x26); //read register to set reference acceleration
   readRegister(LIS3DH_REG_INT1SRC); //Read INT1_SRC to de-latch;
-  attachInterrupt(digitalPinToInterrupt(6), wakeUpPin6, LOW);
-  LowPower.standby();
+  attachInterrupt(digitalPinToInterrupt(BUTTON_0), wakeUpPin0, LOW);
+  LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_ON);
   //LowPower.idle(IDLE_2);
   // Serial.println("I am awake!");
-  detachInterrupt(6);
+  detachInterrupt(BUTTON_0);
   // Serial.println("Detached interrupt from pin 6");
  
 
@@ -194,17 +194,18 @@ void setup(void) {
   readRegister(0x21); //read register to reset high-pass filter 
   readRegister(0x26); //read register to set reference acceleration
   readRegister(LIS3DH_REG_INT1SRC); //Read INT1_SRC to de-latch;
-  LowPower.idle(IDLE_2);
+  delay(100);
+  LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_ON);
+  detachInterrupt(INT_PIN);
   //LowPower.standby();
   // Serial.println("Woke up");
   // Serial.println("Attached interrupt to LIS3DH INT pin");
 }
 
 
-
+/*-----------------------------------------------------------------------------*/
 void LISinterrupt()
 {
-  detachInterrupt(INT_PIN);
   interruptFlag = 1;
 }
 
@@ -222,7 +223,7 @@ float getBatteryVoltage() {
 
 /*-----------------------------------------------------------------------------*/
 // pin 6 interrupt handler
-void wakeUpPin6(void)
+void wakeUpPin0(void)
 {
   // doesn't do anything
 }
@@ -285,10 +286,11 @@ void loop() {
         readRegister(0x26); //read register to set reference acceleration
         readRegister(LIS3DH_REG_INT1SRC); //Read INT1_SRC to de-latch;
         // go to sleep
-        attachInterrupt(digitalPinToInterrupt(6), wakeUpPin6, LOW);
-        LowPower.standby();
+        detachInterrupt(INT_PIN);
+        attachInterrupt(digitalPinToInterrupt(BUTTON_0), wakeUpPin0, LOW);
+        LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_ON);
         // Serial.println("I am awake!");
-        detachInterrupt(6);
+        detachInterrupt(BUTTON_0);
       }
       else
       {
@@ -366,6 +368,7 @@ void loop() {
     readRegister(0x21); //read register to reset high-pass filter 
     readRegister(0x26); //read register to set reference acceleration
     readRegister(LIS3DH_REG_INT1SRC); //Read INT1_SRC to de-latch;
-    LowPower.idle(IDLE_2);
+    LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_ON);
+    detachInterrupt(INT_PIN);
   }
 }
